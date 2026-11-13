@@ -82,8 +82,14 @@ pythonpath = ["src"]
 
 # Scientific validation tests will eventually
 # use the scientific marker.
+addopts = "--strict-markers"
 markers = [
-    "scientific: numerical and scientific validation tests"
+    "unit: pure unit tests and local invariants",
+    "property: Hypothesis property-based tests",
+    "scientific: independently validated reference comparisons",
+    "integration: external dataset or dependency integration tests",
+    "requires_spice: requires external SPICE kernels",
+    "requires_dem: requires external lunar terrain model",
 ]
 
 
