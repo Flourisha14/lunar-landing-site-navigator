@@ -1,0 +1,18 @@
+{
+  "source": "Analytical evaluation of x=r cos(lat) cos(lon), y=r cos(lat) sin(lon), z=r sin(lat); independent of production code.",
+  "frame": "MOON_ME_DE440_ME421",
+  "datum": "MOON_ME_REFERENCE_SPHERE_1737_4_KM",
+  "position_absolute_tolerance_km": 1e-9,
+  "cases": [
+    {"name": "prime-equator", "latitude_deg": 0, "longitude_deg": 0, "elevation_km": 0, "xyz_km": [1737.4, 0, 0]},
+    {"name": "east-quadrature", "latitude_deg": 0, "longitude_deg": 90, "elevation_km": 0, "xyz_km": [0, 1737.4, 0]},
+    {"name": "west-boundary", "latitude_deg": 0, "longitude_deg": 180, "elevation_km": 0, "xyz_km": [-1737.4, 0, 0]},
+    {"name": "north-pole", "latitude_deg": 90, "longitude_deg": 35, "elevation_km": 0, "xyz_km": [0, 0, 1737.4]},
+    {"name": "south-pole", "latitude_deg": -90, "longitude_deg": 123, "elevation_km": 0, "xyz_km": [0, 0, -1737.4]},
+    {"name": "raised-prime", "latitude_deg": 0, "longitude_deg": 0, "elevation_km": 10, "xyz_km": [1747.4, 0, 0]}
+  ],
+  "enu_reference": {
+    "site_latitude_deg": 0, "site_longitude_deg": 0,
+    "east": [0, 1, 0], "north": [0, 0, 1], "up": [1, 0, 0]
+  }
+}
