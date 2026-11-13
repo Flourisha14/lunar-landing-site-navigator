@@ -4,34 +4,39 @@ Ticket ID:
 
 ## Summary
 
-Describe the changes implemented.
+Brief description of the implementation.
 
-## Changes
+## Changes Made
 
-- [ ] Code implemented
-- [ ] Documentation updated
-- [ ] Tests added or updated
+-
 
-## Validation
+## Tests Executed
 
-- [ ] Ruff passed
-- [ ] Mypy passed
-- [ ] Pytest passed
-- [ ] GitHub Actions passed
+- [ ] Ruff
+- [ ] Mypy
+- [ ] Pytest
+- [ ] GitHub Actions CI
 
-## Scientific Verification
+## Scientific Validation
 
-If applicable:
+Complete only if scientific functionality changes.
 
-- Scientific reference:
-- Expected result:
-- Actual result:
-- Numerical tolerance:
+**Scientific reference:**
+
+**Reference frame:**
+
+**Units:**
+
+**Numerical tolerance:**
+
+**Validation evidence:**
 
 ## Known Limitations
 
-Describe any limitations.
+None / Describe limitations.
 
-## Reviewer Notes
+## Merge Readiness
 
-Additional information for reviewers.
+- [ ] CI passed
+- [ ] Changes verified
+- [ ] Ready to merge
