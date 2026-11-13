@@ -1,0 +1,14 @@
+{
+  "status": "pending_independent_reference",
+  "epoch_utc": "2027-11-15T12:00:00Z",
+  "targets": ["SUN", "EARTH"],
+  "observer": "MOON",
+  "frame": "MOON_ME_DE440_ME421",
+  "aberration": "NONE",
+  "position_unit": "km",
+  "kernel_lock_id": "de440s-lunar-2026-v1",
+  "reference_source": null,
+  "expected_position_km": null,
+  "tolerance_km": null,
+  "reason": "Independent published ephemeris values not yet sourced; never generate expected values from the production provider."
+}
