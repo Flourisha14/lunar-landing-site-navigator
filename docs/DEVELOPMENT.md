@@ -84,6 +84,50 @@ must be documented.
 
 Prefer squash merging.
 
+## Single-Developer Hackathon Workflow
+
+This project follows a lightweight development workflow
+optimized for NASA Space Apps Challenge 2026.
+
+### Branching
+
+- `main` is the primary branch.
+- All development occurs on short-lived feature branches.
+- No `develop` branch is used.
+
+### Pull Requests
+
+- Each feature branch is merged through a pull request.
+- Pull requests reference their ClickUp ticket identifiers.
+- GitHub Actions CI must pass before merging.
+- No human approval is required.
+- AI code review is optional and not required.
+
+### Merge Strategy
+
+Squash merging is preferred.
+
+Feature branches should be deleted after merging.
+
+### Scientific Quality
+
+Scientific calculations must include:
+
+- Documented reference frames.
+- Explicit coordinate conventions.
+- Units and numerical tolerances.
+- Scientific assumptions.
+- Appropriate automated tests.
+- Independent reference values where available.
+
+### Repository Protection
+
+The `main` branch is protected against:
+
+- Force pushes.
+- Branch deletion.
+- Merging changes with failing required CI checks.
+
 ## Submission Deadline
 
 November 15, 2026.
