@@ -1,0 +1,99 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-validation:
+    name: Python 3.12 / Backend Validation
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      # --------------------------------------
+      # 1. Checkout repository
+      # --------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # --------------------------------------
+      # 2. Configure Python environment
+      # --------------------------------------
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      # --------------------------------------
+      # 3. Install backend dependencies
+      # --------------------------------------
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install backend and development dependencies
+        run: python -m pip install -e ".[dev]"
+
+      # --------------------------------------
+      # 4. Ruff linting
+      # --------------------------------------
+
+      - name: Ruff lint
+        run: python -m ruff check .
+
+      - name: Ruff format check
+        run: python -m ruff format --check .
+
+      # --------------------------------------
+      # 5. Mypy static type checking
+      # --------------------------------------
+
+      - name: Mypy type check
+        run: python -m mypy src
+
+      # --------------------------------------
+      # 6. Pytest and coverage
+      # --------------------------------------
+
+      - name: Run Pytest with coverage
+        run: |
+          python -m pytest \
+            --cov=lunar_engine \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --junitxml=test-results.xml \
+            -v
+
+      # --------------------------------------
+      # 7. Upload test and coverage reports
+      # --------------------------------------
+
+      - name: Upload backend test reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: backend-test-reports
+          path: |
+            backend/coverage.xml
+            backend/test-results.xml
+          if-no-files-found: warn
+          retention-days: 7
