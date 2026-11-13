@@ -85,6 +85,49 @@ py -3.12 -m venv .venv
 
 See [Development Guide](docs/DEVELOPMENT.md).
 
+## Reproducible Local Development
+
+The scientific backend uses Python 3.12.
+
+Development dependencies are version-pinned in:
+
+`backend/requirements-dev.txt`
+
+### Windows Quick Start
+
+Clone:
+
+```powershell
+git clone https://github.com/Flourisha14/lunar-landing-site-navigator.git
+
+cd lunar-landing-site-navigator
+```
+
+Initialize:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev.ps1 -Command setup
+```
+
+Run local validation:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev.ps1 -Command check
+```
+
+Create local environment configuration:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Scientific datasets and credentials are excluded
+from Git.
+
+For detailed instructions, see:
+
+[Local Development Guide](docs/LOCAL_DEVELOPMENT.md)
+
 ## Scientific Integrity
 
 Scientific calculations must be reproducible,

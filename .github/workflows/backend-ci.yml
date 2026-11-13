@@ -41,7 +41,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/pyproject.toml
+          cache-dependency-path: |
+            backend/pyproject.toml
+            backend/requirements-dev.txt
 
       # --------------------------------------
       # 3. Install backend dependencies
@@ -50,8 +52,14 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      - name: Install backend and development dependencies
-        run: python -m pip install -e ".[dev]"
+      - name: Install pinned development dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Install backend package
+        run: python -m pip install --no-deps -e .
+
+      - name: Verify dependency consistency
+        run: python -m pip check
 
       # --------------------------------------
       # 4. Ruff linting
