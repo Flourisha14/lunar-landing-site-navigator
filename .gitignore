@@ -1,0 +1,125 @@
+# ==========================================
+# Lunar Landing Site Navigator
+# ==========================================
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+build/
+dist/
+
+# Python testing and tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Credentials and environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# React / Node.js
+node_modules/
+.next/
+.nuxt/
+.vite/
+frontend/dist/
+frontend/build/
+frontend/coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Blender
+*.blend
+*.blend1
+*.blend2
+*.blend@
+*.bphys
+*.vdb
+
+# Unreal Engine
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+*.suo
+*.VC.db
+
+# NASA scientific datasets
+data/raw/
+data/processed/
+data/cache/
+data/kernels/
+data/dem/
+data/imagery/
+
+# SPICE kernel formats
+*.bsp
+*.bc
+*.bpc
+*.bds
+*.bdb
+*.tpc
+*.tf
+*.tls
+*.tsc
+
+# Scientific raster / terrain datasets
+*.cub
+*.img
+*.IMG
+*.jp2
+*.JP2
+*.tif
+*.tiff
+*.TIF
+*.TIFF
+*.h5
+*.hdf5
+*.nc
+*.zarr
+*.las
+*.laz
+
+# Generated outputs
+outputs/
+renders/
+simulations/
+checkpoints/
+*.mp4
+*.mov
+*.avi
+
+# IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# OS and temporary files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.log
+logs/
