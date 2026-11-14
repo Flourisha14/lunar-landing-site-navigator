@@ -12,4 +12,23 @@ __all__ = [
     "TerrainVisibilityResult",
     "VisibilityStatus",
     "evaluate_terrain_visibility",
+    "VisibilityMetrics",
+    "VisibilitySample",
+    "VisibilityTimeline",
+    "VisibilityWindow",
+    "analyze_visibility_timeline",
+    "extract_visibility_windows",
+    "sample_utc_interval",
+    "summarize_visibility",
 ]
+
+from .timeline import (
+    VisibilityMetrics,
+    VisibilitySample,
+    VisibilityTimeline,
+    VisibilityWindow,
+    analyze_visibility_timeline,
+    extract_visibility_windows,
+    sample_utc_interval,
+    summarize_visibility,
+)
