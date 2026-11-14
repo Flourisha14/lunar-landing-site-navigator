@@ -42,3 +42,5 @@ typing-extensions==4.16.0
     # via mypy
 
 rasterio==1.5.2
+
+spiceypy==8.4.0

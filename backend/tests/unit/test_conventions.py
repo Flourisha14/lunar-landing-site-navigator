@@ -25,8 +25,20 @@ def test_reference_radius(lunar_reference_radius_km: float) -> None:
 @pytest.mark.unit
 def test_frame_names_are_distinct(nominal_moon_frame: LunarFrame) -> None:
     assert nominal_moon_frame is LunarFrame.ME
-    assert len({item.value for item in LunarFrame}) == 3
-    assert LunarFrame.PA != LunarFrame.ME
+
+    expected_frames = {
+        "MOON_ME_DE440_ME421",
+        "MOON_ME_DE421",
+        "MOON_PA_DE440",
+        "IAU_MOON",
+    }
+
+    actual_frames = {frame.value for frame in LunarFrame}
+
+    assert actual_frames == expected_frames
+    assert len(actual_frames) == len(LunarFrame)
+
+    assert LunarFrame.ME != LunarFrame.ME_DE421
 
 
 @pytest.mark.unit

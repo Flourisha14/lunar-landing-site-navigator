@@ -123,3 +123,6 @@ desktop.ini
 *.swo
 *.log
 logs/
+
+# Generated DE421 runtime kernel manifest
+/data/spice/de421-frame-lock.json
