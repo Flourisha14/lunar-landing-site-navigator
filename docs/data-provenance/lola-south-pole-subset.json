@@ -1,0 +1,13 @@
+{
+  "dataset_id": "GSFC_PGDA_LOLA_SOUTH_POLE_LDEM_80S_80MPP_ADJ_demo_80km",
+  "derived_from": "https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_80MPP_ADJ.TIF",
+  "parent_sha256": "82030dcbdd7c4bb0c7d858e9b4b293b9f2cda5a543ba31ec0f42784bd6beee5a",
+  "subset_path": "data/dem/LDEM_80S_80MPP_ADJ_southpole_demo_80km.TIF",
+  "subset_sha256": "65f17242490dfa65df5b1ceb66672e1b414db9df71fc18a0f4d1193300d25533",
+  "centre_planetocentric_lat_deg": -89.5,
+  "centre_east_positive_lon_deg": 45.0,
+  "width_m": 80000,
+  "height_m": 80000,
+  "processing": "pixel-window clip of original projected GeoTIFF; no reprojection or resampling",
+  "datum_validation_status": "PENDING_SOURCE_METADATA_CONFIRMATION"
+}

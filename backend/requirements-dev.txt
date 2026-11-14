@@ -40,3 +40,5 @@ sortedcontainers==2.4.0
     # via hypothesis
 typing-extensions==4.16.0
     # via mypy
+
+rasterio==1.5.2
