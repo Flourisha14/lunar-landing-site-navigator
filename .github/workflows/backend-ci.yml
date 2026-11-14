@@ -62,6 +62,22 @@ jobs:
         run: python -m pip check
 
       # --------------------------------------
+      # 4. Acquire and verify NASA SPICE kernels
+      # --------------------------------------
+
+      - name: Acquire verified DE440 SPICE kernels
+        run: |
+          python ../scripts/download_spice_kernels.py \
+            --manifest ../docs/data-provenance/de440-frame-kernels.json \
+            --lock-output ../data/spice/kernel-lock.json
+
+      - name: Acquire verified DE421 SPICE kernels
+        run: |
+          python ../scripts/download_spice_kernels.py \
+            --manifest ../docs/data-provenance/de421-frame-kernels.json \
+            --lock-output ../data/spice/de421-frame-lock.json
+
+      # --------------------------------------
       # 4. Ruff linting
       # --------------------------------------
 
@@ -83,6 +99,8 @@ jobs:
       # --------------------------------------
 
       - name: Run Pytest with coverage
+        env:
+          LUNAR_REQUIRE_FRAME_KERNELS: "1"
         run: |
           python -m pytest \
             --cov=lunar_engine \

@@ -15,6 +15,7 @@ class LunarFrame(StrEnum):
     """Distinct NAIF frame names; conversions require an explicit transform."""
 
     ME = "MOON_ME_DE440_ME421"
+    ME_DE421 = "MOON_ME_DE421"
     PA = "MOON_PA_DE440"
     IAU = "IAU_MOON"
 

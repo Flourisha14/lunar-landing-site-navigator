@@ -32,7 +32,7 @@ class TerrainDataError(ValueError):
 class TerrainMetadata:
     dataset_id: str
     source_filename: str
-    frame: LunarFrame = LunarFrame.ME
+    frame: LunarFrame = LunarFrame.ME_DE421
     source_frame_note: str = (
         "Source: MOON_ME DE421. "
         "SPICE engine: MOON_ME_DE440_ME421. "
@@ -50,7 +50,7 @@ class TerrainMetadata:
     datum_confirmed: bool = False  # Must inspect publisher label/metadata before scientific use.
 
     def __post_init__(self) -> None:
-        if self.frame != LunarFrame.ME:
+        if self.frame != LunarFrame.ME_DE421:
             raise ValueError(
                 "DEM is declared only in its source ME frame; no implicit PA conversion"
             )
