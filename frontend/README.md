@@ -38,3 +38,35 @@ The UI requests geometry and analysis independently. If site analysis fails, ref
 Dates are entered as **UTC**, not local time. Default form values are an *editable documentation example*, not live results. Longitude is east-positive, and the backend is responsible for canonical normalization. Direction azimuth can be `null` at zenith/nadir.
 
 **Limitations:** Geometric visibility is not a verified radio link; no link budget or solar-disc fraction is modeled. `/timeline` exists in backend but is out of this sprint's frontend scope. UI coverage is a descriptive summary of the returned per-target statuses, not a global DEM coverage proof. Full integration requires local SPICE binaries and DEM assets; unit tests do not simulate real NASA scientific values.
+
+## Continuous Integration
+
+Frontend validation is automated through GitHub Actions.
+
+Workflow: `.github/workflows/frontend-ci.yml`
+
+The workflow runs on pull requests targeting `main` and pushes to `main` when frontend files or the frontend CI workflow change.
+
+### Automated checks
+
+- Node.js 24 setup.
+- Reproducible installation using `npm ci`.
+- TypeScript validation using `npm run typecheck`.
+- ESLint validation using `npm run lint`.
+- Existing Vitest tests using `npm test`.
+- Vite production build using `npm run build`.
+
+### Local verification
+
+From the `frontend/` directory:
+
+    npm.cmd ci
+    npm.cmd run typecheck
+    npm.cmd run lint
+    npm.cmd test
+    npm.cmd run build
+    npm.cmd audit
+
+The frontend workflow operates independently of the scientific backend CI.
+
+No NASA SPICE kernels or LOLA DEM files are required for frontend validation.
