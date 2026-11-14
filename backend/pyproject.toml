@@ -42,7 +42,8 @@ dev = [
     "hypothesis>=6,<7",
     "ruff>=0.9,<1",
     "mypy>=1.14,<2",
-    "spiceypy>=8,<9"
+    "spiceypy>=8,<9",
+    "rasterio>=1.4,<2"
 ]
 
 # Scientific computation dependencies

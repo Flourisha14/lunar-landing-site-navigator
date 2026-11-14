@@ -1,0 +1,68 @@
+{
+  "dataset_id": "GSFC_PGDA_LOLA_SOUTH_POLE_LDEM_80S_80MPP_ADJ",
+  "product_filename": "LDEM_80S_80MPP_ADJ.TIF",
+  "provider": "NASA GSFC Planetary Geodesy Data Archive, LRO LOLA",
+  "source_url": "https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_80MPP_ADJ.TIF",
+  "product_page": "https://pgda.gsfc.nasa.gov/products/90",
+  "publication": "Barker et al. 2023, Planetary Science Journal 4, 183",
+  "doi": "10.60903/gsfcpgda-lola-spole",
+  "publication_doi": "10.3847/PSJ/acf3e1",
+  "local_path": "data/dem/LDEM_80S_80MPP_ADJ.TIF",
+  "bytes": 189158392,
+  "sha256": "82030dcbdd7c4bb0c7d858e9b4b293b9f2cda5a543ba31ec0f42784bd6beee5a",
+  "width_px": 7600,
+  "height_px": 7600,
+  "bands": 1,
+  "dtype": "float32",
+  "nodata": null,
+  "nodata_representation": "NaN",
+  "pixel_transform": [
+    80.0,
+    0.0,
+    -304000.0,
+    0.0,
+    -80.0,
+    304000.0
+  ],
+  "pixel_size_x_m": 80.0,
+  "pixel_size_y_m": 80.0,
+  "bounds_projected_m": [
+    -304000.0,
+    -304000.0,
+    304000.0,
+    304000.0
+  ],
+  "raster_crs_wkt": "PROJCS[\"Moon (2015) - Sphere / Ocentric / South Polar\",GEOGCS[\"Moon (2015) - Sphere / Ocentric\",DATUM[\"Moon (2015) - Sphere\",SPHEROID[\"Moon (2015) - Sphere\",1737400,0,AUTHORITY[\"IAU\",\"30100\"]],AUTHORITY[\"IAU\",\"30100\"]],PRIMEM[\"Reference Meridian\",0,AUTHORITY[\"IAU\",\"30100\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"IAU\",\"30100\"]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH],AUTHORITY[\"IAU\",\"30135\"]]",
+  "raster_crs_proj": {
+    "proj": "stere",
+    "lat_0": -90,
+    "lat_ts": -90,
+    "lon_0": 0,
+    "x_0": 0,
+    "y_0": 0,
+    "R": 1737400,
+    "units": "m",
+    "no_defs": true
+  },
+  "raster_units": null,
+  "source_frame": "MOON_ME JPL DE421 (PGDA description)",
+  "horizontal_reference": {
+    "frame_family": "MOON_ME",
+    "source_realization": "DE421-associated",
+    "latitude_type": "planetocentric",
+    "longitude_direction": "east-positive",
+    "projection": "south_polar_stereographic",
+    "reference_radius_m": 1737400.0
+  },
+  "vertical_reference": {
+    "unit": "m",
+    "interpretation": "pending_explicit_source_confirmation",
+    "datum_confirmed": false
+  },
+  "latitude_type": "planetocentric (confirm against delivered raster and source documentation)",
+  "longitude_convention": "east-positive (confirm against delivered raster and source documentation)",
+  "vertical_interpretation": "surface height Z in metres; vertical datum requires metadata confirmation",
+  "validated_for_sampling": false,
+  "validation_note": "Inspect CRS, reference radius and height datum before treating values as radial elevation above 1737.4 km.",
+  "frame_alignment_note": "Source is DE421-associated MOON_ME; astronomy engine uses MOON_ME_DE440_ME421. Cross-realization alignment has not been independently quantified."
+}
