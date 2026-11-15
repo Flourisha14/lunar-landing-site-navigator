@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ScreenedCandidate } from '../recommendations/types';
 import {
   Cartesian2,
   Cartesian3,
@@ -24,6 +25,9 @@ interface Props {
   latitude: string;
   longitude: string;
   onSelect: (site: LunarSite) => void;
+  candidates?: ScreenedCandidate[];
+  onCandidateSelect?: (site: LunarSite) => void;
+  focusRequest?: LunarSite | null;
 }
 
 /**
@@ -44,12 +48,14 @@ function sitePosition(site: LunarSite): Cartesian3 {
   ));
 }
 
-export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
+export function LunarGlobe({ latitude, longitude, onSelect, candidates = [], onCandidateSelect, focusRequest }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
   const tilesetRef = useRef<Cesium3DTileset | null>(null);
   const markerRef = useRef<ReturnType<Viewer['entities']['add']> | null>(null);
   const selectRef = useRef(onSelect);
+  const candidateSelectRef = useRef(onCandidateSelect);
+  const candidateEntitiesRef = useRef(new Map<string, ScreenedCandidate>());
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [terrainMode, setTerrainMode] = useState<'fallback' | 'loading' | 'tiles' | 'error'>('fallback');
@@ -58,6 +64,7 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
 
   // Event handler registration is once per viewer, yet always calls current app state.
   useEffect(() => { selectRef.current = onSelect; }, [onSelect]);
+  useEffect(() => { candidateSelectRef.current = onCandidateSelect; }, [onCandidateSelect]);
 
   useEffect(() => {
     if (!container.current) return;
@@ -136,7 +143,15 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
       }
       handler = new ScreenSpaceEventHandler(active.scene.canvas);
       handler.setInputAction((event: { position: Cartesian2 }) => {
-        let hit: Cartesian3 | undefined;
+        // Select a backend candidate before the regular terrain-picking path.
+      const entityPick = active.scene.pick(event.position) as { id?: { id?: string } } | undefined;
+      const matchedCandidate = entityPick?.id?.id ? candidateEntitiesRef.current.get(entityPick.id.id) : undefined;
+      if (matchedCandidate) {
+        const location = normalizeLunarSite(matchedCandidate.latitude_deg, matchedCandidate.longitude_deg);
+        if (location) (candidateSelectRef.current ?? selectRef.current)(location);
+        return;
+      }
+      let hit: Cartesian3 | undefined;
         const currentTileset = tilesetRef.current;
         if (currentTileset) {
           // In real-terrain mode, never substitute a reference-sphere intersection.
@@ -229,6 +244,44 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
       },
     });
   }, [selected, ready, terrainMode]);
+  // Candidate entities are separate from the active landing-site marker.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!ready || !viewer || viewer.isDestroyed()) return;
+    const created: Array<ReturnType<Viewer['entities']['add']>> = [];
+    candidateEntitiesRef.current.clear();
+    for (const candidate of candidates) {
+      const location = normalizeLunarSite(candidate.latitude_deg, candidate.longitude_deg);
+      if (!location) continue;
+      const hex = candidate.suitability === 'SUITABLE' ? '#32d78f' : candidate.suitability === 'UNSUITABLE' ? '#ff5968' : '#eab75a';
+      const id = `candidate-${created.length}`;
+      const entity = viewer.entities.add({
+        id, position: sitePosition(location),
+        point: { pixelSize: 10, color: Color.fromCssColorString(hex), outlineColor: Color.BLACK,
+          outlineWidth: 2, heightReference: terrainMode === 'tiles' ? HeightReference.CLAMP_TO_3D_TILE : HeightReference.NONE,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        label: { text: candidate.suitability.replace('_', ' '), fillColor: Color.fromCssColorString(hex),
+          font: '11px sans-serif', pixelOffset: new Cartesian2(0, -18),
+          heightReference: terrainMode === 'tiles' ? HeightReference.CLAMP_TO_3D_TILE : HeightReference.NONE,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY },
+      });
+      created.push(entity);
+      candidateEntitiesRef.current.set(id, candidate);
+    }
+    return () => {
+      candidateEntitiesRef.current.clear();
+      if (!viewer.isDestroyed()) for (const entity of created) viewer.entities.remove(entity);
+    };
+  }, [candidates, ready, terrainMode]);
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!focusRequest || !ready || !viewer || viewer.isDestroyed()) return;
+    const position = sitePosition(focusRequest);
+    const destination = Cartesian3.multiplyByScalar(position, 2.8, new Cartesian3());
+    const direction = Cartesian3.negate(position, new Cartesian3());
+    const up = Math.abs(focusRequest.latitudeDeg) > 80 ? Cartesian3.UNIT_Y : Cartesian3.UNIT_Z;
+    viewer.camera.flyTo({ destination, orientation: { direction, up }, duration: 1.2 });
+  }, [focusRequest, ready]);
 
   const focusSelected = () => {
     const viewer = viewerRef.current;

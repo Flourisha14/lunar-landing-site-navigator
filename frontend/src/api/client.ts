@@ -2,6 +2,8 @@ import type {
   ApiErrorBody, GeometryRequest, GeometryResponse, HealthResponse,
   MetadataResponse, SiteAnalysisRequest, SiteAnalysisResponse, TerrainMeshResponse,
 } from './types';
+import type { RecommendSitesRequest, RecommendSitesResponse } from '../recommendations/types';
+import { parseRecommendations } from '../recommendations/types';
 
 const DEFAULT_API_URL = 'http://127.0.0.1:8000';
 export const API_BASE_URL = (import.meta.env.VITE_LUNAR_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
@@ -48,6 +50,8 @@ async function request<T>(path: string, data?: unknown, signal?: AbortSignal): P
 }
 
 export const lunarApi = {
+  recommendSites: async (data: RecommendSitesRequest, signal?: AbortSignal): Promise<RecommendSitesResponse> =>
+    parseRecommendations(await request<unknown>('/api/v1/recommend-sites', data, signal)),
   health: (signal?: AbortSignal) => request<HealthResponse>('/api/v1/health', undefined, signal),
   metadata: (signal?: AbortSignal) => request<MetadataResponse>('/api/v1/metadata', undefined, signal),
   geometry: (data: GeometryRequest, signal?: AbortSignal) => request<GeometryResponse>('/api/v1/geometry', data, signal),
