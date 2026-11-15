@@ -115,3 +115,57 @@ Playwright browser tests run in Chromium and use isolated scientific API fixture
 The existing scientific backend tests remain responsible for validating actual NASA SPICE and LOLA calculations.
 
 The frontend GitHub Actions workflow executes the browser regression tests automatically.
+
+## FE-003 — Babylon Local Lunar Surface
+
+Open **Local surface · Babylon** from Mission Control. The Cesium and Babylon
+viewers are mutually exclusive: switching views releases the previous canvas
+and GPU engine. The local scene offers orbit and zoom controls and recreates
+its renderer after switching back.
+
+### Scientific lighting contract
+
+The frontend reuses the existing FastAPI `/api/v1/geometry` response from
+`useLunarAnalysis`. The backend-provided `sun.east_unit`, `north_unit` and
+`up_unit` form the observer-to-Sun unit vector in lunar local East/North/Up.
+The local Babylon world is **+X=East, +Y=Up, +Z=North** (left-handed).
+Babylon's `DirectionalLight.direction` describes *travel direction of rays*,
+so its vector is `(-east_unit, -up_unit, -north_unit)` after normalization.
+
+`sunToBabylon` validates the Sun target, frame (`MOON_ME_*`), planetocentric
+and east-positive conventions, direction norm, and the backend azimuth and
+elevation. The local view never calculates solar ephemerides. Results are
+applied only if both the UTC timestamp and selected site match the current
+mission input; stale, missing, or inconsistent results disable directional
+sunlight. Backend visibility and terrain-aware assessment remain separate
+from display lighting. Timestamp changes request fresh geometry automatically.
+
+### Illustrative rendering limitations
+
+The ground and demo rocks are synthetically constructed. They **are not**
+sampled NASA LOLA elevations. The small non-scientific fill light is for
+interface legibility and does not prove local daylight. Directional-light
+intensity is artistic, not calibrated irradiance. No terrain-accurate shadows
+or solar power predictions are provided. FE-005 will address actual DEM mesh
+rendering; the configured regional LOLA DEM remains backend-only for now.
+
+### Testing and CI
+
+Install dependencies from `frontend` with `npm install @babylonjs/core` and
+`npm install -D @testing-library/react jsdom`. Execute:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd test
+npm.cmd run build
+npm.cmd run test:e2e
+```
+
+Vitest tests cover cardinal directions, below-horizon behavior, invalid
+geometry, stale data, component lifecycle, failure fallback, and resource
+cleanup using a mock scene (no GPU). Chromium Playwright tests cover view
+switching, local canvas startup, UTC changes, API fixture responses, and
+returning to Cesium. The existing frontend GitHub Actions workflow already
+runs `npm test` and `npm run test:e2e`, so it discovers these new suites.
+Scientific numerical accuracy remains in the independent Python backend QA.
