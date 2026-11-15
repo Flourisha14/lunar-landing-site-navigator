@@ -70,3 +70,48 @@ From the `frontend/` directory:
 The frontend workflow operates independently of the scientific backend CI.
 
 No NASA SPICE kernels or LOLA DEM files are required for frontend validation.
+
+## FE-002 — Interactive Lunar Globe
+
+The frontend includes a CesiumJS lunar reference globe integrated with Mission Control.
+
+### Features
+
+- Moon-sized reference sphere with a radius of 1,737,400 metres.
+- Interactive globe rotation and zoom.
+- Latitude/longitude coordinate grid.
+- Lunar surface selection.
+- Selected-site marker.
+- Synchronization with Mission Controls.
+- UTC timestamp preservation.
+- Scientific API integration using the existing FastAPI client.
+- Regional terrain coverage limitations.
+
+The globe is a visualization and interaction interface. It does not independently calculate astronomical positions, illumination, or terrain visibility.
+
+The current globe is a smooth reference sphere rather than a lunar elevation model.
+
+### Automated Regression Tests
+
+Frontend testing includes:
+
+- Vitest unit tests for lunar coordinate transformations and request validation.
+- Playwright browser tests for Cesium rendering and camera navigation.
+- Surface selection and Mission Controls synchronization.
+- UTC preservation and scientific API request integration.
+- Polar camera stability.
+
+Run locally from the frontend directory:
+
+    npm.cmd ci
+    npm.cmd run typecheck
+    npm.cmd run lint
+    npm.cmd test
+    npm.cmd run build
+    npm.cmd run test:e2e
+
+Playwright browser tests run in Chromium and use isolated scientific API fixtures.
+
+The existing scientific backend tests remain responsible for validating actual NASA SPICE and LOLA calculations.
+
+The frontend GitHub Actions workflow executes the browser regression tests automatically.
