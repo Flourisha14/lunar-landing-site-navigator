@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
 from lunar_api.app import create_app
 from lunar_api.service import ScientificService
-import numpy as np
-rasterio = pytest.importorskip("rasterio")
-from rasterio.crs import CRS
-from rasterio.transform import from_origin
 from lunar_engine.terrain.dem import south_polar_stereographic_xy
+
+rasterio = pytest.importorskip("rasterio")
+CRS = pytest.importorskip("rasterio.crs").CRS
+from_origin = pytest.importorskip("rasterio.transform").from_origin
 
 
 @pytest.fixture
@@ -20,11 +21,15 @@ def dem_path(tmp_path):
     path = tmp_path / "api_lola.tif"
     data = np.full((13, 13), 100, dtype="float32")
     with rasterio.open(
-        path, "w", driver="GTiff", height=13, width=13, count=1,
-        dtype="float32", nodata=-9999.0,
-        crs=CRS.from_proj4(
-            "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +R=1737400 +units=m +no_defs"
-        ),
+        path,
+        "w",
+        driver="GTiff",
+        height=13,
+        width=13,
+        count=1,
+        dtype="float32",
+        nodata=-9999.0,
+        crs=CRS.from_proj4("+proj=stere +lat_0=-90 +lon_0=0 +k=1 +R=1737400 +units=m +no_defs"),
         transform=from_origin(x - 520, y + 520, 80, 80),
     ) as dst:
         dst.write(data, 1)

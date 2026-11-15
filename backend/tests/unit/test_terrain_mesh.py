@@ -5,12 +5,19 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-rasterio = pytest.importorskip("rasterio")
-from rasterio.crs import CRS
-from rasterio.transform import from_origin
+from lunar_engine.terrain.dem import (
+    LunarDEM,
+    TerrainMetadata,
+    south_polar_stereographic_xy,
+)
+from lunar_engine.terrain.mesh import (
+    TerrainOutsideCoverage,
+    generate_terrain_mesh,
+)
 
-from lunar_engine.terrain.dem import LunarDEM, TerrainMetadata, south_polar_stereographic_xy
-from lunar_engine.terrain.mesh import TerrainOutsideCoverage, generate_terrain_mesh
+rasterio = pytest.importorskip("rasterio")
+CRS = pytest.importorskip("rasterio.crs").CRS
+from_origin = pytest.importorskip("rasterio.transform").from_origin
 
 
 @pytest.fixture
@@ -19,12 +26,16 @@ def dem_path(tmp_path):
     path = tmp_path / "test_lola.tif"
     data = np.full((13, 13), 100.0, dtype="float32")
     with rasterio.open(
-        path, "w", driver="GTiff", width=13, height=13, count=1,
-        dtype="float32", nodata=-9999.0,
+        path,
+        "w",
+        driver="GTiff",
+        width=13,
+        height=13,
+        count=1,
+        dtype="float32",
+        nodata=-9999.0,
         transform=from_origin(cx - 520, cy + 520, 80, 80),
-        crs=CRS.from_proj4(
-            "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +R=1737400 +units=m +no_defs"
-        ),
+        crs=CRS.from_proj4("+proj=stere +lat_0=-90 +lon_0=0 +k=1 +R=1737400 +units=m +no_defs"),
     ) as dst:
         dst.write(data, 1)
     return path
@@ -70,6 +81,7 @@ def test_no_excessive_sampling(dem_path):
 def test_edge_yields_partial_coverage_without_fabricating_vertices(dem_path):
     cx, cy = south_polar_stereographic_xy(-89, 0)
     from lunar_engine.terrain.dem import south_polar_inverse
+
     lat, lon = south_polar_inverse(cx + 320, cy)
     with open_dem(dem_path) as dem:
         mesh = generate_terrain_mesh(dem, lat, lon, radius_m=320, sample_step_m=160)

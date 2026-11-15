@@ -91,8 +91,7 @@ def generate_terrain_mesh(
             except TerrainDataError:
                 continue  # Explicit gap: never synthesize a height.
             world_offset = tuple(
-                (r + sample.elevation_m) * direction[k] - (r + h0) * up[k]
-                for k in range(3)
+                (r + sample.elevation_m) * direction[k] - (r + h0) * up[k] for k in range(3)
             )
             xyz = tuple(sum(world_offset[k] * axis[k] for k in range(3)) for axis in basis)
             ids[row, col] = len(positions)

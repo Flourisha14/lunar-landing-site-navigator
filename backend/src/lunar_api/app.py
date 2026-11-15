@@ -16,9 +16,9 @@ from lunar_api.schemas import (
     MetadataResponse,
     SiteAnalysisRequest,
     SiteAnalysisResponse,
+    TerrainMeshResponse,
     TimelineRequest,
     TimelineResponse,
-    TerrainMeshResponse,
 )
 from lunar_api.service import ScientificService, ScientificUnavailable
 from lunar_engine.terrain.dem import TerrainDataError
@@ -53,10 +53,14 @@ def create_app(
         )
 
     @app.exception_handler(TerrainOutsideCoverage)
-    async def terrain_outside_coverage(_request: Request, exc: TerrainOutsideCoverage) -> JSONResponse:
+    async def terrain_outside_coverage(
+        _request: Request,
+        exc: TerrainOutsideCoverage,
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=422, content={"detail": str(exc), "code": "outside_coverage"}
         )
+
     @app.exception_handler(TerrainDataError)
     async def terrain_error(_request: Request, exc: TerrainDataError) -> JSONResponse:
         return JSONResponse(
@@ -156,9 +160,12 @@ def create_app(
         sample_step_m: float = Query(160.0, ge=80, le=640, allow_inf_nan=False),
     ) -> TerrainMeshResponse:
         return app.state.science.terrain_mesh(
-            latitude_deg, longitude_deg, radius_m=radius_m,
+            latitude_deg,
+            longitude_deg,
+            radius_m=radius_m,
             sample_step_m=sample_step_m,
         )
+
     return app
 
 

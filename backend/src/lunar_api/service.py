@@ -123,8 +123,11 @@ class ScientificService:
         """Read-only, bounded DEM mesh. Does not require SPICE kernels."""
         with self._open_dem() as dem:
             mesh = generate_terrain_mesh(
-                dem, latitude_deg, longitude_deg,
-                radius_m=radius_m, sample_step_m=sample_step_m,
+                dem,
+                latitude_deg,
+                longitude_deg,
+                radius_m=radius_m,
+                sample_step_m=sample_step_m,
             )
         return TerrainMeshResponse(
             status=mesh.status,
@@ -140,6 +143,7 @@ class ScientificService:
             indices=mesh.indices,
             metadata=mesh.metadata,
         )
+
     def _require_kernels(self) -> None:
         if not self.kernels_configured():
             raise ScientificUnavailable("Verified DE421/DE440 SPICE kernel manifests unavailable")
