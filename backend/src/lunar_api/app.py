@@ -10,6 +10,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from lunar_api.recommend_schemas import RecommendSitesRequest, RecommendSitesResponse
 from lunar_api.schemas import (
     GeometryRequest,
     GeometryResponse,
@@ -169,6 +170,10 @@ def create_app(
                 sample_step_m=sample_step_m,
             ),
         )
+
+    @app.post("/api/v1/recommend-sites", response_model=RecommendSitesResponse)
+    def recommend_sites(request: RecommendSitesRequest) -> RecommendSitesResponse:
+        return app.state.science.recommend_sites(request)  # type: ignore[no-any-return]
 
     return app
 

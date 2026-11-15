@@ -15,6 +15,11 @@ from pathlib import Path
 from threading import RLock
 from typing import Literal, cast
 
+from lunar_api.recommend_schemas import (
+    RecommendSitesRequest,
+    RecommendSitesResponse,
+    ScreenedCandidate,
+)
 from lunar_api.schemas import (
     BodyAssessment,
     Direction,
@@ -376,4 +381,64 @@ class ScientificService:
             processing_seconds=outcome.processing_seconds,
             terrain_cache_hits=outcome.terrain_cache_hits,
             terrain_cache_misses=outcome.terrain_cache_misses,
+        )
+
+    def recommend_sites(self, request: RecommendSitesRequest) -> RecommendSitesResponse:
+        """Request-scoped DEM, serialized SPICE and direct BE-013 screening."""
+        from dataclasses import asdict
+        from typing import cast
+
+        from lunar_engine.analysis.recommendations import recommend_lunar_sites
+        from lunar_engine.terrain.horizon import TerrainSource
+
+        self._require_kernels()
+        with self._science_lock, self._open_dem() as dem:
+            result = recommend_lunar_sites(
+                cast(TerrainSource, dem),
+                start_utc=request.start_utc,
+                end_utc=cast(str, request.end_utc),
+                sampling_seconds=request.sampling_seconds,
+                candidate_count=request.candidate_count,
+                max_recommendations=request.max_recommendations,
+                observer_height_m=request.observer_height_m,
+                max_distance_km=request.terrain.max_distance_km,
+                step_m=request.terrain.step_m,
+                interpolation=request.terrain.interpolation,
+                constraints=request.constraints.to_engine(),
+                repository_root=self.repository_root,
+            )
+        manifests = sorted(
+            {x.kernel_manifest_id for x in result.candidates if x.kernel_manifest_id}
+        )
+        return RecommendSitesResponse(
+            start_utc=request.start_utc,
+            end_utc=cast(str, request.end_utc),
+            sampling_seconds=request.sampling_seconds,
+            constraints=request.constraints,
+            terrain=request.terrain,
+            candidate_count=request.candidate_count,
+            requested_recommendations=request.max_recommendations,
+            generated_count=result.generated_count,
+            evaluated_count=len(result.candidates),
+            suitable_count=result.suitable_count,
+            unsuitable_count=result.unsuitable_count,
+            insufficient_count=result.insufficient_count,
+            resolution=result.resolution,
+            candidates=[ScreenedCandidate.model_validate(asdict(x)) for x in result.candidates],
+            recommendations=[
+                ScreenedCandidate.model_validate(asdict(x)) for x in result.recommendations
+            ],
+            dataset_id=result.dataset_id,
+            reference_frame=result.frame,
+            kernel_manifest_id=manifests[0] if len(manifests) == 1 else None,
+            weights={"sun": 0.40, "earth": 0.35, "simultaneous": 0.25},
+            screening_scope=result.screening_scope,
+            fidelity=result.fidelity,
+            processing_seconds=result.processing_seconds,
+            limitations=[
+                *LIMITATIONS,
+                "Visibility preferences are not NASA-certified landing safety metrics.",
+                "No surface hazards, thermal/power survival, or radio link budgets assessed.",
+                "Sampled DEM footprint only, not an exhaustive lunar search.",
+            ],
         )
