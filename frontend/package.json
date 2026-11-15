@@ -13,6 +13,7 @@
         "test:e2e": "playwright test"
     },
     "dependencies": {
+        "@babylonjs/core": "^9.36.0",
         "cesium": "^1.147.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0"
@@ -20,11 +21,13 @@
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "@playwright/test": "^1.65.1",
+        "@testing-library/react": "^16.3.3",
         "@types/node": "^22.15.0",
         "@types/react": "^19.2.0",
         "@types/react-dom": "^19.2.0",
         "@vitejs/plugin-react": "^5.0.0",
         "eslint": "^10.15.0",
+        "jsdom": "^31.0.1",
         "typescript": "~5.9.3",
         "typescript-eslint": "8.72.2",
         "vite": "^7.1.0",
