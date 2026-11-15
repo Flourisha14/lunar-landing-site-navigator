@@ -1,18 +1,25 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import type { GeometryResponse, ScientificMetadata } from '../api/types';
 import { LocalLunarSurface } from './LocalLunarSurface';
 
-const { setSun, dispose, createScene } = vi.hoisted(() => {
+const { setSun, setTerrain, dispose, createScene } = vi.hoisted(() => {
   const setSun = vi.fn();
+  const setTerrain = vi.fn();
   const dispose = vi.fn();
-  const createScene = vi.fn(() => ({ setSun, dispose }));
-  return { setSun, dispose, createScene };
+  const createScene = vi.fn(() => ({ setSun, setTerrain, dispose }));
+  return { setSun, setTerrain, dispose, createScene };
 });
 vi.mock('../babylon/createLocalScene', () => ({ createLocalScene: createScene }));
+const { terrainMesh } = vi.hoisted(() => ({ terrainMesh: vi.fn() }));
+vi.mock('../api/client', () => ({ lunarApi: { terrainMesh: (...args: unknown[]) => terrainMesh(...args) }, ApiError: class ApiError extends Error { constructor(message: string, public status: number, public code: string) { super(message); } } }));
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
+// By default this fixture selects an unsupported site; no terrain may be generated.
+beforeEach(() => {
+  terrainMesh.mockRejectedValue(new Error('Controlled terrain unavailable'));
+});
 const metadata: ScientificMetadata = {
   api_version: 'v1', reference_frame: 'MOON_ME_DE421', kernel_manifest_id: 'E2E-fixture',
   terrain_dataset_id: null, mode: 'geometry', aberration: 'NONE', fidelity: 'fixture',
@@ -33,7 +40,7 @@ describe('LocalLunarSurface component, GPU-independent', () => {
   it('mounts one canvas/scene, conveys scientific light and disposes on unmount', async () => {
     const mounted = render(<LocalLunarSurface {...base} />);
     expect(screen.getByLabelText('Babylon local lunar surface canvas')).toBeTruthy();
-    expect(screen.getByText(/not actual NASA LOLA elevation data/)).toBeTruthy();
+    expect(screen.getByText(/BABYLON · NASA LOLA TERRAIN/)).toBeTruthy();
     expect(createScene).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(setSun).toHaveBeenCalledWith(expect.objectContaining({ aboveHorizon: true })));
     mounted.unmount();
@@ -49,14 +56,27 @@ describe('LocalLunarSurface component, GPU-independent', () => {
   });
   it('shows loading, science errors and missing geometry without fabricated sun', () => {
     const mounted = render(<LocalLunarSurface {...base} loading={true} />);
-    expect(screen.getByRole('status').textContent).toMatch(/Awaiting/);
+    expect(screen.getByTestId('local-solar-status').textContent).toMatch(/Awaiting/);
     mounted.rerender(<LocalLunarSurface {...base} loading={false} geometry={{ value: null, error: 'HTTP 503' }} />);
-    expect(screen.getByRole('status').textContent).toContain('HTTP 503');
+    expect(screen.getByTestId('local-solar-status').textContent).toContain('HTTP 503');
     expect(setSun).toHaveBeenLastCalledWith(null);
   });
   it('handles Babylon WebGL initialization failures without crashing the dashboard', () => {
     createScene.mockImplementationOnce(() => { throw new Error('No WebGL'); });
     render(<LocalLunarSurface {...base} />);
     expect(screen.getByRole('alert').textContent).toContain('No WebGL');
+  });
+  it('shows unavailable data without creating synthetic terrain', async () => {
+    render(<LocalLunarSurface {...base} />);
+    await waitFor(() => expect(screen.getByTestId('local-terrain-status').textContent).toContain('Terrain API unavailable'));
+    expect(setTerrain).toHaveBeenCalledWith(null);
+    expect(setTerrain).not.toHaveBeenCalledWith(expect.objectContaining({ vertices: expect.anything() }));
+  });
+  it('requests the selected site and keeps terrain stable when only UTC changes', async () => {
+    terrainMesh.mockImplementation(() => new Promise(() => undefined));
+    const mounted = render(<LocalLunarSurface {...base} />);
+    expect(terrainMesh).toHaveBeenCalledWith({ latitude_deg: -89.5, longitude_deg: 45 }, expect.any(AbortSignal));
+    mounted.rerender(<LocalLunarSurface {...base} timestampUTC="2027-11-16T12:00:00Z" />);
+    expect(terrainMesh).toHaveBeenCalledTimes(1);
   });
 });

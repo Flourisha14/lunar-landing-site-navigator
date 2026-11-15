@@ -1,6 +1,6 @@
 import type {
   ApiErrorBody, GeometryRequest, GeometryResponse, HealthResponse,
-  MetadataResponse, SiteAnalysisRequest, SiteAnalysisResponse,
+  MetadataResponse, SiteAnalysisRequest, SiteAnalysisResponse, TerrainMeshResponse,
 } from './types';
 
 const DEFAULT_API_URL = 'http://127.0.0.1:8000';
@@ -52,4 +52,8 @@ export const lunarApi = {
   metadata: (signal?: AbortSignal) => request<MetadataResponse>('/api/v1/metadata', undefined, signal),
   geometry: (data: GeometryRequest, signal?: AbortSignal) => request<GeometryResponse>('/api/v1/geometry', data, signal),
   siteAnalysis: (data: SiteAnalysisRequest, signal?: AbortSignal) => request<SiteAnalysisResponse>('/api/v1/site-analysis', data, signal),
+  terrainMesh: (site: { latitude_deg: number; longitude_deg: number }, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ latitude_deg: String(site.latitude_deg), longitude_deg: String(site.longitude_deg), radius_m: '5000', sample_step_m: '160' });
+    return request<TerrainMeshResponse>(`/api/v1/terrain/mesh?${params}`, undefined, signal);
+  },
 };
