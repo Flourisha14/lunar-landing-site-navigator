@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import cast
 
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -159,11 +160,14 @@ def create_app(
         radius_m: float = Query(5000.0, ge=160, le=5000, allow_inf_nan=False),
         sample_step_m: float = Query(160.0, ge=80, le=640, allow_inf_nan=False),
     ) -> TerrainMeshResponse:
-        return app.state.science.terrain_mesh(
-            latitude_deg,
-            longitude_deg,
-            radius_m=radius_m,
-            sample_step_m=sample_step_m,
+        return cast(
+            TerrainMeshResponse,
+            app.state.science.terrain_mesh(
+                latitude_deg=latitude_deg,
+                longitude_deg=longitude_deg,
+                radius_m=radius_m,
+                sample_step_m=sample_step_m,
+            ),
         )
 
     return app

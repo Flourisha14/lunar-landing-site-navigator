@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import asin, atan2, ceil, cos, degrees, hypot, radians, sin
+from typing import Literal
 
 from lunar_engine.terrain.dem import LunarDEM, TerrainDataError
 
@@ -25,7 +26,7 @@ class TerrainMesh:
     center_elevation_m: float
     vertices: list[tuple[float, float, float]]
     indices: list[int]
-    status: str
+    status: Literal["complete", "partial_coverage"]
     valid_samples: int
     requested_samples: int
     radius_m: float
@@ -67,7 +68,6 @@ def generate_terrain_mesh(
     up = (cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat))
     east = (-sin(lon), cos(lon), 0.0)
     north = (-sin(lat) * cos(lon), -sin(lat) * sin(lon), cos(lat))
-    basis = (east, up, north)
 
     positions: list[tuple[float, float, float]] = []
     ids: dict[tuple[int, int], int] = {}
@@ -93,7 +93,11 @@ def generate_terrain_mesh(
             world_offset = tuple(
                 (r + sample.elevation_m) * direction[k] - (r + h0) * up[k] for k in range(3)
             )
-            xyz = tuple(sum(world_offset[k] * axis[k] for k in range(3)) for axis in basis)
+            xyz = (
+                sum(world_offset[k] * east[k] for k in range(3)),
+                sum(world_offset[k] * up[k] for k in range(3)),
+                sum(world_offset[k] * north[k] for k in range(3)),
+            )
             ids[row, col] = len(positions)
             positions.append(xyz)
 
