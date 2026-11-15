@@ -26,7 +26,15 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev -- --host localhost',
     url: `http://localhost:${port}`,
-    reuseExistingServer: !process.env.CI,
+
+    // Ensure browser regressions use a controlled test environment.
+    reuseExistingServer: false,
     timeout: 120_000,
+
+    // Vite must not load authenticated Cesium Moon during
+    // reference-sphere regression tests.
+    env: {
+      VITE_CESIUM_ION_TOKEN: '',
+    },
   },
 });

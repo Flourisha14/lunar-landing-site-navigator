@@ -9,6 +9,7 @@ import {
   EllipsoidTerrainProvider,
   GeographicProjection,
   Globe,
+  HeightReference,
   Ion,
   Math as CesiumMath,
   ScreenSpaceEventHandler,
@@ -17,6 +18,7 @@ import {
 } from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { LUNAR_REFERENCE_RADIUS_M, normalizeLunarSite, type LunarSite } from '../globe/lunarCoordinates';
+import { isMoonTilesetPick } from '../globe/terrainPicking';
 
 interface Props {
   latitude: string;
@@ -45,6 +47,7 @@ function sitePosition(site: LunarSite): Cartesian3 {
 export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
+  const tilesetRef = useRef<Cesium3DTileset | null>(null);
   const markerRef = useRef<ReturnType<Viewer['entities']['add']> | null>(null);
   const selectRef = useRef(onSelect);
   const [error, setError] = useState<string | null>(null);
@@ -133,9 +136,22 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
       }
       handler = new ScreenSpaceEventHandler(active.scene.canvas);
       handler.setInputAction((event: { position: Cartesian2 }) => {
-        const hit = active.camera.pickEllipsoid(event.position, MOON);
-        if (!hit) return; // Click in empty space, not on lunar surface.
+        let hit: Cartesian3 | undefined;
+        const currentTileset = tilesetRef.current;
+        if (currentTileset) {
+          // In real-terrain mode, never substitute a reference-sphere intersection.
+          // A visible tile must actually be picked before reading depth.
+          if (!active.scene.pickPositionSupported) return;
+          const picked = active.scene.pick(event.position);
+          if (!isMoonTilesetPick(picked, currentTileset)) return;
+          hit = active.scene.pickPosition(event.position);
+        } else {
+          // Explicitly labeled reference-sphere fallback (missing/failed ion asset).
+          hit = active.camera.pickEllipsoid(event.position, MOON);
+        }
+        if (!hit) return;
         const coordinates = MOON.cartesianToCartographic(hit);
+        if (!coordinates) return;
         const site = normalizeLunarSite(
           CesiumMath.toDegrees(coordinates.latitude),
           CesiumMath.toDegrees(coordinates.longitude),
@@ -154,6 +170,7 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
               return;
             }
             active.scene.primitives.add(tileset);
+            tilesetRef.current = tileset;
             active.scene.globe.show = false;
             for (const grid of gridEntities) active.entities.remove(grid);
             setTerrainMode('tiles');
@@ -174,6 +191,7 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
       handler?.destroy();
       viewerRef.current = null;
       markerRef.current = null;
+      tilesetRef.current = null;
       if (viewer && !viewer.isDestroyed()) viewer.destroy();
     };
   }, []);
@@ -186,12 +204,16 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
       markerRef.current = null;
       return;
     }
+    // In tiles mode, clamp marker graphics to 3D Tiles instead of placing
+    // them at an assumed zero-elevation reference sphere.
+    const onTiles = terrainMode === 'tiles';
     const position = sitePosition(selected);
     if (markerRef.current) viewer.entities.remove(markerRef.current);
     markerRef.current = viewer.entities.add({
       position,
       point: {
         pixelSize: 13,
+        heightReference: onTiles ? HeightReference.CLAMP_TO_3D_TILE : HeightReference.NONE,
         color: Color.fromCssColorString('#65e3e4'),
         outlineColor: Color.WHITE,
         outlineWidth: 2,
@@ -199,13 +221,14 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
       },
       label: {
         text: 'SELECTED SITE',
+        heightReference: onTiles ? HeightReference.CLAMP_TO_3D_TILE : HeightReference.NONE,
         font: '12px sans-serif',
         fillColor: Color.WHITE,
         pixelOffset: new Cartesian2(0, -24),
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
     });
-  }, [selected, ready]);
+  }, [selected, ready, terrainMode]);
 
   const focusSelected = () => {
     const viewer = viewerRef.current;
@@ -233,7 +256,7 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
         <button className="secondary lunar-focus" type="button" onClick={focusSelected} disabled={!selected || !ready}>Focus site</button>
       </div>
       <p className="tiny muted">{terrainMode === 'tiles'
-        ? 'Global visualization: Cesium Moon (ion asset 2684829), NASA-derived imagery and terrain. This 3D Tiles source is independent of the backend regional LOLA DEM; reference-sphere picking remains in use until FE-005A terrain picking is implemented.'
+        ? 'Global visualization: Cesium Moon (ion asset 2684829), NASA-derived imagery and terrain. This 3D Tiles source is independent of the backend regional LOLA DEM; site selection uses visible 3D Tiles where supported; marker graphics clamp to tile geometry.'
         : 'Visualization fallback: Gray lunar reference sphere and coordinate grid; no real elevation shown. Scientific terrain analysis uses the Python backend LOLA DEM.'}</p>
       <p className="tiny muted">Selecting a site updates Mission Controls and requests fresh analysis at the currently selected UTC time. Terrain-aware results may be unavailable outside the configured DEM.</p>
     </section>
