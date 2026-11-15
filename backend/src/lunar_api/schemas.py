@@ -265,3 +265,21 @@ class MetadataResponse(Contract):
     max_timeline_samples: int = MAX_SAMPLES
     max_timeline_days: int = MAX_MISSION_DAYS
     limitations: list[str]
+
+
+class TerrainMeshResponse(Contract):
+    """LOLA-derived visual geometry, independent of SPICE visibility results."""
+
+    status: Literal["complete", "partial_coverage"]
+    coordinate_frame: Literal["local_east_up_north"] = "local_east_up_north"
+    latitude_deg: Latitude
+    longitude_deg: Longitude
+    center_elevation_m: float
+    radius_m: float
+    sample_step_m: float
+    grid_side: int
+    valid_samples: int
+    requested_samples: int
+    vertices: list[tuple[float, float, float]]
+    indices: list[int]
+    metadata: dict[str, object]

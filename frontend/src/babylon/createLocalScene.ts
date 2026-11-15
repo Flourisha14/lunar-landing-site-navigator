@@ -1,47 +1,70 @@
 import {
   ArcRotateCamera, Color3, Color4, DirectionalLight, Engine,
-  HemisphericLight, MeshBuilder, Scene, StandardMaterial, Vector3,
+  HemisphericLight, Mesh, Scene, StandardMaterial, Vector3, VertexData,
 } from '@babylonjs/core';
 import type { SolarLightVector } from './solarLighting';
+import { verifyTerrainMesh } from './terrainMesh';
+import type { TerrainMeshResponse } from '../api/types';
 
 export interface LocalSceneHandle {
   setSun: (solar: SolarLightVector | null) => void;
+  setTerrain: (terrain: TerrainMeshResponse | null) => void;
   dispose: () => void;
 }
 
-/** One Babylon engine/render loop per mounted local view, independent of Cesium. */
+/** Uses real LOLA vertices in metres, with no generated ground or rock geometry. */
 export function createLocalScene(canvas: HTMLCanvasElement): LocalSceneHandle {
   const engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: false });
   let scene: Scene | null = null;
   let disposed = false;
   let onResize: (() => void) | null = null;
   let observer: ResizeObserver | null = null;
+
   try {
     scene = new Scene(engine);
-    scene.clearColor = new Color4(0.02, 0.035, 0.07, 1);
-    const camera = new ArcRotateCamera('local-site-camera', -Math.PI / 2, 1.05, 30, Vector3.Zero(), scene);
-    camera.lowerRadiusLimit = 9;
-    camera.upperRadiusLimit = 85;
-    camera.lowerBetaLimit = 0.15;
-    camera.upperBetaLimit = Math.PI / 2 - 0.03;
-    camera.wheelPrecision = 25;
+    scene.clearColor = new Color4(0.012, 0.016, 0.027, 1);
+
+    const camera = new ArcRotateCamera(
+      'local-site-camera',
+      -Math.PI / 4,
+      0.45,
+      14000,
+      Vector3.Zero(),
+      scene,
+    );
+    camera.lowerRadiusLimit = 30;
+    camera.upperRadiusLimit = 48000;
+    camera.lowerBetaLimit = 0.07;
+    camera.upperBetaLimit = Math.PI / 2 - 0.012;
+    camera.minZ = 0.5;
+    camera.maxZ = 120000;
+    camera.wheelPrecision = 45;
+    camera.panningSensibility = 150;
     camera.attachControl(canvas, true);
     scene.activeCamera = camera;
 
-    const material = new StandardMaterial('illustrative-regolith', scene);
-    material.diffuseColor = new Color3(0.42, 0.45, 0.50);
-    material.specularColor = new Color3(0.035, 0.035, 0.035);
-    const ground = MeshBuilder.CreateGround('illustrative-ground', { width: 90, height: 90, subdivisions: 4 }, scene);
-    ground.material = material;
+    // Production terrain material. This is an inspection-friendly visual
+    // representation, NOT a calibrated lunar photometric or irradiance model.
+    // A small emissive component keeps the actual DEM mesh recognizable even
+    // before terrain-cast shadows and per-point illumination are implemented.
+    const regolith = new StandardMaterial('NASA-LOLA-regolith-visual', scene);
+    regolith.disableLighting = false;
+    regolith.diffuseColor = new Color3(0.53, 0.52, 0.50);
+    regolith.emissiveColor = new Color3(0.14, 0.14, 0.14);
+    regolith.specularColor = new Color3(0.01, 0.01, 0.01);
+    regolith.backFaceCulling = false;
+    regolith.wireframe = false;
 
-    // UI-only fill keeps the demonstrative scene legible when scientific Sun data is absent.
-    // This is NOT lunar ambient irradiance or proof of daylight.
-    const fill = new HemisphericLight('non-scientific-ui-fill', new Vector3(0, 1, 0), scene);
-    fill.intensity = 0.12;
+    // Non-scientific visualization fill: direct Sun direction comes from the
+    // backend, but shadowing and physical brightness remain deferred work.
+    const fill = new HemisphericLight('ui-only-fill', new Vector3(0, 1, 0), scene);
+    fill.intensity = 0.28;
+
     const sun = new DirectionalLight('backend-solar-direction', new Vector3(0, -1, 0), scene);
-    sun.intensity = 1.4; // Artistic brightness, not calibrated solar irradiance.
+    sun.intensity = 1.4;
     sun.setEnabled(false);
 
+    let terrainMesh: Mesh | null = null;
     engine.runRenderLoop(() => { if (scene && !disposed) scene.render(); });
     onResize = () => engine.resize();
     window.addEventListener('resize', onResize);
@@ -49,7 +72,41 @@ export function createLocalScene(canvas: HTMLCanvasElement): LocalSceneHandle {
       observer = new ResizeObserver(() => engine.resize());
       observer.observe(canvas);
     }
+
     return {
+      setTerrain(terrain) {
+        if (disposed) return;
+        // Discard the preceding site's mesh before loading a new selection.
+        terrainMesh?.dispose();
+        terrainMesh = null;
+        if (!terrain) return;
+
+        const validated = verifyTerrainMesh(terrain);
+        const data = new VertexData();
+        data.positions = validated.positions;
+        data.indices = validated.indices;
+        const normals: number[] = [];
+        VertexData.ComputeNormals(validated.positions, validated.indices, normals);
+        data.normals = normals;
+
+        const mesh = new Mesh('NASA-LOLA-selected-site-mesh', scene!);
+        try {
+          data.applyToMesh(mesh, false);
+          mesh.material = regolith;
+          terrainMesh = mesh;
+
+          const boundingBox = mesh.getBoundingInfo().boundingBox;
+          camera.setTarget(boundingBox.centerWorld);
+          camera.alpha = -Math.PI / 4;
+          camera.beta = 0.45;
+          camera.radius = Math.max(900, validated.extentM * 2.8);
+
+        } catch (error) {
+          mesh.dispose();
+          terrainMesh = null;
+          throw error;
+        }
+      },
       setSun(solar) {
         if (disposed) return;
         if (!solar || !solar.aboveHorizon) {
@@ -57,7 +114,9 @@ export function createLocalScene(canvas: HTMLCanvasElement): LocalSceneHandle {
           return;
         }
         const [x, y, z] = solar.direction;
-        sun.direction = new Vector3(x, y, z);
+        // A site-to-Sun vector points toward the Sun; Babylon's directional
+        // light points in the direction the incoming light rays travel.
+        sun.direction = new Vector3(-x, -y, -z);
         sun.setEnabled(true);
       },
       dispose() {

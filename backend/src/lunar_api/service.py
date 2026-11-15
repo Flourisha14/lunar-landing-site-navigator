@@ -27,6 +27,7 @@ from lunar_api.schemas import (
     SiteAnalysisRequest,
     SiteAnalysisResponse,
     TerrainConfig,
+    TerrainMeshResponse,
     TimelineMetrics,
     TimelineRequest,
     TimelineResponse,
@@ -41,6 +42,7 @@ from lunar_engine.coordinates.frame_transform import analyze_geometry_in_dem_fra
 from lunar_engine.core.conventions import LunarFrame, LunarLocation
 from lunar_engine.terrain.dem import DEFAULT_LOLA_METADATA, LunarDEM
 from lunar_engine.terrain.horizon import TerrainSource
+from lunar_engine.terrain.mesh import generate_terrain_mesh
 
 LIMITATIONS = [
     "Point-center geometric Sun/Earth directions; SPICE aberration NONE.",
@@ -108,6 +110,38 @@ class ScientificService:
             terrain_configured=self.terrain_configured(),
             kernel_manifests_configured=self.kernels_configured(),
             limitations=list(LIMITATIONS),
+        )
+
+    def terrain_mesh(
+        self,
+        latitude_deg: float,
+        longitude_deg: float,
+        *,
+        radius_m: float = 5000.0,
+        sample_step_m: float = 160.0,
+    ) -> TerrainMeshResponse:
+        """Read-only, bounded DEM mesh. Does not require SPICE kernels."""
+        with self._open_dem() as dem:
+            mesh = generate_terrain_mesh(
+                dem,
+                latitude_deg,
+                longitude_deg,
+                radius_m=radius_m,
+                sample_step_m=sample_step_m,
+            )
+        return TerrainMeshResponse(
+            status=mesh.status,
+            latitude_deg=mesh.latitude_deg,
+            longitude_deg=mesh.longitude_deg,
+            center_elevation_m=mesh.center_elevation_m,
+            radius_m=mesh.radius_m,
+            sample_step_m=mesh.sample_step_m,
+            grid_side=mesh.grid_side,
+            valid_samples=mesh.valid_samples,
+            requested_samples=mesh.requested_samples,
+            vertices=mesh.vertices,
+            indices=mesh.indices,
+            metadata=mesh.metadata,
         )
 
     def _require_kernels(self) -> None:

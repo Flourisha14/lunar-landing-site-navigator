@@ -27,6 +27,16 @@ async function fixture(page: Page) {
         angular_unit: 'deg', horizontal_distance_unit: 'km', height_unit: 'm' },
     } });
   });
+  await page.route('**/api/v1/terrain/mesh*', route => route.fulfill({ json: {
+    status: 'complete', coordinate_frame: 'local_east_up_north',
+    latitude_deg: -89.5, longitude_deg: 45, center_elevation_m: -393.18,
+    radius_m: 160, sample_step_m: 320, grid_side: 2, valid_samples: 4, requested_samples: 4,
+    vertices: [[-160, 0, 160], [160, 12, 160], [-160, -4, -160], [160, 8, -160]],
+    indices: [0, 1, 2, 1, 3, 2], metadata: { dataset_id: 'LOLA-browser-fixture',
+      coordinate_frame: 'local_east_up_north', vertical_exaggeration: 1, center_is_local_origin: true,
+      datum_confirmed: true, visual_only: true, pixel_size_m: 80, reference_frame: 'MOON_ME_DE421',
+      frame_alignment_note: 'fixture only' },
+  } }));
   await page.route('**/api/v1/site-analysis', route => route.fulfill({
     status: 422, json: { code: 'terrain_coverage_error', detail: 'Controlled UI fixture: unavailable terrain' },
   }));
@@ -40,8 +50,8 @@ test('Babylon view initializes, has usable canvas, updates lighting and preserve
   await page.getByRole('button', { name: 'Local surface · Babylon' }).click();
   const canvas = page.getByLabel('Babylon local lunar surface canvas');
   await expect(canvas).toBeVisible();
-  await expect(page.getByText('Illustrative terrain — not actual NASA LOLA elevation data.', { exact: false })).toBeVisible();
-  await expect(page.getByText('WebGL local viewer unavailable:', { exact: false })).toHaveCount(0);
+  await expect(page.getByTestId('local-terrain-status')).toContainText('NASA LOLA terrain loaded');
+  await expect(page.getByText('WebGL or terrain rendering unavailable:', { exact: false })).toHaveCount(0);
   await page.getByRole('button', { name: 'Analyze site' }).click();
   await expect(page.getByTestId('local-solar-status')).toContainText('Scientific Sun direction loaded');
   const date = page.getByLabel('Date (UTC)');
@@ -64,4 +74,14 @@ test('unavailable scientific data leaves Babylon directional sunlight disabled',
   await page.getByRole('button', { name: 'Analyze site' }).click();
   await expect(page.getByTestId('local-solar-status')).toContainText('scientific geometry unavailable', { ignoreCase: true });
   await expect(page.getByTestId('local-solar-status')).not.toContainText('Scientific Sun direction loaded');
+});
+
+test('unsupported landing site never shows a fabricated local terrain mesh', async ({ page }) => {
+  await page.route('**/api/v1/terrain/mesh*', route => route.fulfill({
+    status: 422, json: { code: 'outside_coverage', detail: 'Site outside DEM' },
+  }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Local surface · Babylon' }).click();
+  await expect(page.getByTestId('local-terrain-status')).toContainText('outside the configured NASA LOLA DEM coverage');
+  await expect(page.getByTestId('local-terrain-provenance')).toHaveCount(0);
 });

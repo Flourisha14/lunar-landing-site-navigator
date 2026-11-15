@@ -104,6 +104,32 @@ export interface MetadataResponse {
   limitations: string[];
 }
 
+/** Read-only backend DEM mesh: metre-scale ENU geometry for visualization only. */
+export interface TerrainMeshResponse {
+  status: 'complete' | 'partial_coverage';
+  coordinate_frame: 'local_east_up_north';
+  latitude_deg: number;
+  longitude_deg: number;
+  center_elevation_m: number;
+  radius_m: number;
+  sample_step_m: number;
+  grid_side: number;
+  valid_samples: number;
+  requested_samples: number;
+  vertices: [number, number, number][];
+  indices: number[];
+  metadata: {
+    dataset_id: string;
+    reference_frame: string;
+    datum_confirmed: boolean;
+    pixel_size_m: number;
+    vertical_exaggeration: number;
+    coordinate_frame: string;
+    center_is_local_origin: boolean;
+    frame_alignment_note: string;
+    visual_only: boolean;
+  };
+}
 export interface ApiErrorBody {
   detail?: string | Array<{ loc?: Array<string | number>; msg?: string; type?: string }>;
   code?: string;

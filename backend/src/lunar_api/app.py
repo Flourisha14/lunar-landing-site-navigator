@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import cast
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -16,11 +17,13 @@ from lunar_api.schemas import (
     MetadataResponse,
     SiteAnalysisRequest,
     SiteAnalysisResponse,
+    TerrainMeshResponse,
     TimelineRequest,
     TimelineResponse,
 )
 from lunar_api.service import ScientificService, ScientificUnavailable
 from lunar_engine.terrain.dem import TerrainDataError
+from lunar_engine.terrain.mesh import TerrainOutsideCoverage
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,15 @@ def create_app(
     async def unavailable(_request: Request, exc: ScientificUnavailable) -> JSONResponse:
         return JSONResponse(
             status_code=503, content={"detail": str(exc), "code": "scientific_data_unavailable"}
+        )
+
+    @app.exception_handler(TerrainOutsideCoverage)
+    async def terrain_outside_coverage(
+        _request: Request,
+        exc: TerrainOutsideCoverage,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422, content={"detail": str(exc), "code": "outside_coverage"}
         )
 
     @app.exception_handler(TerrainDataError)
@@ -140,6 +152,23 @@ def create_app(
     @app.post("/api/v1/timeline", response_model=TimelineResponse)
     def timeline(request: TimelineRequest) -> TimelineResponse:
         return app.state.science.timeline(request)  # type: ignore[no-any-return]
+
+    @app.get("/api/v1/terrain/mesh", response_model=TerrainMeshResponse)
+    def terrain_mesh(
+        latitude_deg: float = Query(..., ge=-90, le=90, allow_inf_nan=False),
+        longitude_deg: float = Query(..., allow_inf_nan=False),
+        radius_m: float = Query(5000.0, ge=160, le=5000, allow_inf_nan=False),
+        sample_step_m: float = Query(160.0, ge=80, le=640, allow_inf_nan=False),
+    ) -> TerrainMeshResponse:
+        return cast(
+            TerrainMeshResponse,
+            app.state.science.terrain_mesh(
+                latitude_deg=latitude_deg,
+                longitude_deg=longitude_deg,
+                radius_m=radius_m,
+                sample_step_m=sample_step_m,
+            ),
+        )
 
     return app
 
