@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Cartesian2,
   Cartesian3,
+  Cesium3DTileset,
   Cartographic,
   Color,
   Ellipsoid,
   EllipsoidTerrainProvider,
   GeographicProjection,
   Globe,
+  Ion,
   Math as CesiumMath,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -47,6 +49,8 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
   const selectRef = useRef(onSelect);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [terrainMode, setTerrainMode] = useState<'fallback' | 'loading' | 'tiles' | 'error'>('fallback');
+  const [terrainError, setTerrainError] = useState<string | null>(null);
   const selected = useMemo(() => latitude.trim() === '' || longitude.trim() === '' ? null : normalizeLunarSite(Number(latitude), Number(longitude)), [latitude, longitude]);
 
   // Event handler registration is once per viewer, yet always calls current app state.
@@ -56,6 +60,7 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
     if (!container.current) return;
     let viewer: Viewer | null = null;
     let handler: ScreenSpaceEventHandler | null = null;
+    let disposed = false;
     try {
       viewer = new Viewer(container.current, {
         // Explicitly avoid Cesium's default WGS84 globe, ion imagery and Earth terrain.
@@ -106,6 +111,7 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
         },
       });
       // The grid is a visual coordinate guide, not lunar topography.
+      const gridEntities: Array<ReturnType<Viewer['entities']['add']>> = [];
       const gridColor = Color.fromCssColorString('#b5c8e0').withAlpha(0.45);
       for (let lon = -150; lon <= 180; lon += 30) {
         const positions: Cartesian3[] = [];
@@ -114,7 +120,7 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
             CesiumMath.toRadians(lon), CesiumMath.toRadians(lat), 1500,
           )));
         }
-        active.entities.add({ polyline: { positions, width: 1, material: gridColor } });
+        gridEntities.push(active.entities.add({ polyline: { positions, width: 1, material: gridColor } }));
       }
       for (let lat = -60; lat <= 60; lat += 30) {
         const positions: Cartesian3[] = [];
@@ -123,7 +129,7 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
             CesiumMath.toRadians(lon), CesiumMath.toRadians(lat), 1500,
           )));
         }
-        active.entities.add({ polyline: { positions, width: 1, material: gridColor } });
+        gridEntities.push(active.entities.add({ polyline: { positions, width: 1, material: gridColor } }));
       }
       handler = new ScreenSpaceEventHandler(active.scene.canvas);
       handler.setInputAction((event: { position: Cartesian2 }) => {
@@ -136,11 +142,35 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
         );
         if (site) selectRef.current(site);
       }, ScreenSpaceEventType.LEFT_CLICK);
+      // Remote tiles are visualization only; scientific LOS still uses the Python DEM.
+      const ionToken = (import.meta.env.VITE_CESIUM_ION_TOKEN ?? '').trim();
+      if (ionToken) {
+        Ion.defaultAccessToken = ionToken;
+        setTerrainMode('loading');
+        void Cesium3DTileset.fromIonAssetId(2684829, { enableCollision: true })
+          .then((tileset) => {
+            if (disposed || active.isDestroyed()) {
+              if (!tileset.isDestroyed()) tileset.destroy();
+              return;
+            }
+            active.scene.primitives.add(tileset);
+            active.scene.globe.show = false;
+            for (const grid of gridEntities) active.entities.remove(grid);
+            setTerrainMode('tiles');
+          })
+          .catch((reason: unknown) => {
+            if (disposed) return;
+            setTerrainError(reason instanceof Error ? reason.message : String(reason));
+            setTerrainMode('error');
+            // Leave the Moon reference sphere visible on failure.
+          });
+      }
       setReady(true);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
     }
     return () => {
+      disposed = true;
       handler?.destroy();
       viewerRef.current = null;
       markerRef.current = null;
@@ -191,16 +221,20 @@ export function LunarGlobe({ latitude, longitude, onSelect }: Props) {
     <section className="panel lunar-globe-panel" aria-label="Interactive lunar globe">
       <div className="panel-heading">
         <h2>Explore the Moon</h2>
-        <span className="eyebrow">CESIUM · LUNAR REFERENCE SPHERE</span>
+        <span className="eyebrow">{terrainMode === 'tiles' ? 'CESIUM · NASA-DERIVED LUNAR TILES' : 'CESIUM · LUNAR REFERENCE SPHERE'}</span>
       </div>
       <p className="small muted">Drag to rotate, scroll to zoom, and click the sphere to select a lunar site.</p>
       <div className="lunar-canvas" ref={container} aria-label="Interactive Cesium lunar globe" />
+      {terrainMode === 'loading' && <p className="tiny muted" role="status">Loading Cesium Moon 3D Tiles...</p>}
+      {terrainMode === 'error' && <p className="tiny muted" role="status">Lunar tiles unavailable ({terrainError}). Showing reference sphere.</p>}
       {error && <div className="error-panel" role="alert">Cesium viewer failed: {error}</div>}
       <div className="lunar-globe-footer">
         <span>{selected ? `Selected: ${selected.latitudeDeg.toFixed(5)}°, ${selected.longitudeDeg.toFixed(5)}° E` : 'Enter valid coordinates to show marker'}</span>
         <button className="secondary lunar-focus" type="button" onClick={focusSelected} disabled={!selected || !ready}>Focus site</button>
       </div>
-      <p className="tiny muted"><strong>Visualization fallback:</strong> Gray reference sphere and coordinate grid only. Not photoreal lunar imagery or terrain elevation. The configured regional LOLA DEM is used by the Python API, not by this globe.</p>
+      <p className="tiny muted">{terrainMode === 'tiles'
+        ? 'Global visualization: Cesium Moon (ion asset 2684829), NASA-derived imagery and terrain. This 3D Tiles source is independent of the backend regional LOLA DEM; reference-sphere picking remains in use until FE-005A terrain picking is implemented.'
+        : 'Visualization fallback: Gray lunar reference sphere and coordinate grid; no real elevation shown. Scientific terrain analysis uses the Python backend LOLA DEM.'}</p>
       <p className="tiny muted">Selecting a site updates Mission Controls and requests fresh analysis at the currently selected UTC time. Terrain-aware results may be unavailable outside the configured DEM.</p>
     </section>
   );
